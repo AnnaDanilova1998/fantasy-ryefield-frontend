@@ -1,68 +1,90 @@
 <template>
   <div class="container">
-    <div>
-      <Logo />
-      <h1 class="title">
-        fantasy-ryefield
-      </h1>
-      <div class="links">
-        <a
-          href="https://nuxtjs.org/"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="button--green"
-        >
-          Documentation
-        </a>
-        <a
-          href="https://github.com/nuxt/nuxt.js"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="button--grey"
-        >
-          GitHub
-        </a>
-      </div>
-    </div>
+    <div>{{ currentUser.name }} {{ currentUser.surname }}</div>
+    <h1>Бросить вызов</h1>
+    <label>
+      <select>
+        <option v-for="user in users">{{ user.name }} {{ user.surname }}</option>
+      </select>
+    </label>
+    <button @click="makeCall">Бросить вызов!</button>
   </div>
 </template>
 
 <script>
 export default {
-  async mounted() {
-    const data = await this.$axios.$get('http://localhost:8080/api/get-maps', {
+  data() {
+    return {
+      callsNodeId: 'c573c1dd-1555-4079-8eb3-25d0ffaf8d8d'
+    }
+  },
+  async asyncData({$axios, route}) {
+    const users = await $axios.$get('http://localhost:8000/api/get-users', {
       params: {
-        token:this.$route.query.token,
+        token: route.query.token,
+        mapId: route.query.mapid
+      }
+    });
+    const currentUser = await $axios.$get('http://localhost:8000/api/get-current-user', {
+      params: {
+        token: route.query.token
+      }
+    });
+
+    const usersRemapped = users.data.filter((user) => {
+      return user.user_id !== currentUser.data.user_id
+    })
+    return {
+      users: usersRemapped,
+      currentUser: currentUser.data
+    }
+  },
+  async mounted() {
+    const data = await this.$axios.$get('http://localhost:8000/api/get-maps', {
+      params: {
+        token: this.$route.query.token,
         mapId: this.$route.query.mapid
       }
     });
 
     console.log(data);
+  },
+  methods: {
+    async makeCall() {
+      await this.$axios.$post('http://localhost:8000/api/new-node', {
+        properties: {
+          global: {
+            title: "Еще заголовок"
+          }
+        },
+        parent: this.callsNodeId,
+        mapId: this.$route.query.mapid
+      }, {
+        params: {
+          token: this.$route.query.token,
+          mapId: this.$route.query.mapid
+        }
+      })
+    }
   }
 }
 </script>
 
 <style>
 .container {
-  margin: 0 auto;
-  min-height: 100vh;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+
 }
 
 .title {
-  font-family:
-    'Quicksand',
-    'Source Sans Pro',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  font-family: 'Quicksand',
+  'Source Sans Pro',
+  -apple-system,
+  BlinkMacSystemFont,
+  'Segoe UI',
+  Roboto,
+  'Helvetica Neue',
+  Arial,
+  sans-serif;
   display: block;
   font-weight: 300;
   font-size: 100px;
